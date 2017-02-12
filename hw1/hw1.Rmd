@@ -1,0 +1,51 @@
+---
+title: "HW1"
+author: "Dan Fanelli"
+date: "February 2, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Some Setup, Peek at the Core Data:
+
+```{r warning=FALSE, message=FALSE}
+library(knitr)
+library(sqldf)
+library(ggplot2)
+
+data <- read.csv("inc5000_data.csv", header = TRUE)
+kable(head(data))
+```
+
+## 1) Companies by State
+
+```{r warning=FALSE, message=FALSE}
+state_count <- sqldf("select State, count(*) as the_count from data group by State order by the_count desc")
+kable(head(state_count))
+
+ggplot(data=state_count, aes(x=State, y=the_count, fill=factor(the_count))) + geom_bar(stat="identity") +  ggtitle("Company Count by State") + theme(legend.position="none", axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+# 2) Average employment by industry for companies in state with the 3rd Most:
+
+```{r warning=FALSE, message=FALSE}
+ny_data <- data[data$State == state_count$State[3],]
+ny_data <- ny_data[complete.cases(ny_data),]
+ny_data <- sqldf('select Industry, avg(Employees) as avg_employees, state from ny_data group by Industry order by avg_employees desc')
+kable(head(ny_data))
+
+ggplot(ny_data, aes(x = factor(Industry), y = avg_employees)) + geom_bar(stat = "identity", aes(colour = factor(Industry))) + ggtitle("average employment by industry for ny companies") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + guides(colour=FALSE) + xlab("INDUSTRY") + ylab("NUMBER OF EMPLOYEES")
+```
+
+# 3) Which industries generate the most revenue per employee:
+
+```{r warning=FALSE, message=FALSE}
+ny_data <- data[data$State == state_count$State[3],]
+ny_data <- ny_data[complete.cases(ny_data),]
+
+rev_data <- sqldf("select Industry, ((sum(Revenue)/sum(Employees))/1000) as revenue_per_employee from ny_data group by Industry order by revenue_per_employee desc")
+kable(head(rev_data))
+
+ggplot(rev_data, aes(x = factor(Industry), y = revenue_per_employee)) + geom_bar(stat = "identity", aes(colour = factor(Industry))) + ggtitle("revenue per employee by industry") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + guides(colour=FALSE) + xlab("INDUSTRY") + ylab("REVENUE PER EMPLOYEE (in thousands)")
+```
