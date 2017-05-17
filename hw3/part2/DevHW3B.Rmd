@@ -1,0 +1,67 @@
+---
+title: "Dev HW3A"
+author: "Dan Fanelli"
+date: "March 9, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r message=FALSE, warning=FALSE}
+
+
+library(knitr)
+library(sqldf)
+library(ggplot2)
+
+data <- read.csv("../data/cleaned-cdc-mortality-1999-2010-2.csv", header = TRUE)
+
+names(data) <- gsub(x = names(data), pattern = "\\.", replacement = "_")
+
+# Integers are too small...
+data$Population <- as.numeric(data$Population)
+
+usa <- sqldf("select ICD_Chapter, Year, ((sum(Deaths) / sum(Population)) * 100000) as Crude_Rate from data group by ICD_Chapter, Year")
+
+usa$State <- "USA"
+usa$Crude_Rate <- round(usa$Crude_Rate, digits = 1)
+
+all_data <- rbind(data[,c("ICD_Chapter","State", "Year", "Crude_Rate")], usa)
+
+kable(head(all_data))
+kable(tail(all_data))
+
+subdata <- all_data[all_data$State %in% c('USA','UT','NY'),][all_data$ICD_Chapter == 'Certain infectious and parasitic diseases',]
+
+ggplot(data=subdata, aes(x=Year, y=Crude_Rate, fill=State)) + geom_bar(stat="identity", position=position_dodge()) + xlab("Year") + ylab("Crude Rate") + ggtitle("Crude Rate by State and Year") + scale_x_continuous(breaks = 1999:2010)
+
+subdata <- subdata[,-1]
+
+library(reshape)	
+kable(head(subdata))
+
+#kable(head(t(subdata)))
+#kable(head(melt(subdata, id=(c("State")))))
+#kable(head(t(melt(subdata, id=(c("Year"))))))
+
+usa_df <- sqldf("select Year, Crude_Rate from all_data where State = 'USA' and ICD_Chapter = 'Certain infectious and parasitic diseases' order by Year ")
+
+other_df <- sqldf("select Year, Crude_Rate from all_data where State = 'NY' and ICD_Chapter = 'Certain infectious and parasitic diseases' order by Year ")
+
+both <- merge(x = usa_df, y = other_df, by = "Year", all = TRUE)
+colnames(both) <- c("Year","USA","OTHER")
+
+kable(both)
+
+kable(sqldf("select distinct(State) from data"))
+```
+
+# Goal:
+
+```{r message=FALSE, warning=FALSE}
+df=data.frame(Year=c("1995", "1996", "1997"), USA=c(1,3,4), OTHER=c(23,12,32))
+
+kable(df)
+
+
+```

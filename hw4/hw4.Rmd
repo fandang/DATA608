@@ -1,0 +1,57 @@
+---
+title: "HW4 Testing"
+author: "Dan Fanelli"
+date: "March 19, 2017"
+output: html_document
+---
+
+```{r message=FALSE, warning=FALSE}
+library(knitr)
+library(sqldf)
+library(ggplot2)
+
+df = read.csv("Data/riverkeeper_data_2013.csv", header = TRUE)
+
+df$EnteroCount <- as.numeric(gsub("<", "", as.matrix(df$EnteroCount)))
+
+df$EnteroCount <- as.numeric(gsub(">", "", as.matrix(df$EnteroCount)))
+
+kable(head(df))
+kable(tail(df))
+
+head(sqldf("select site, count(*) as the_count from df group by site order by the_count"))
+
+
+df$Date <- as.Date(df$Date, format = "%m/%d/%Y")
+
+time_between_df <- data.frame(Site=character(), since_last = double(), stringsAsFactors=FALSE)
+
+sites_dates <- sqldf("select site, Date from df order by site, date")
+last_row <- NA
+for(i in 1:nrow(sites_dates)) {
+    row <- sites_dates[i,]
+    if((!is.na(last_row)) && (last_row$Site == row$Site)){
+      time_since_last <- row$Date - last_row$Date;
+      row_df <- data.frame(Site=row$Site, time_since_last = time_since_last)
+      time_between_df <- rbind(time_between_df, row_df)
+    }
+    last_row <- row;
+}
+head(time_between_df, n=10)
+head(sites_dates, n=10)
+
+head(sqldf("SELECT AVG((time_since_last - sub.a) * (time_since_last - sub.a)) as var from time_between_df, 
+    (SELECT AVG(time_since_last) AS a FROM time_between_df) AS sub"))
+
+head(sqldf("SELECT Site, count(*) as count, AVG((time_since_last - sub.a) * (time_since_last - sub.a)) as var from time_between_df, (SELECT AVG(time_since_last) AS a FROM time_between_df) AS sub group by Site order by var"))
+
+```
+
+# Rain vs Water Quality:
+
+```{r message=FALSE, warning=FALSE}
+fit <- lm(EnteroCount ~ FourDayRainTotal, data = df)
+summary(fit)
+
+sqldf("select count(distinct(Site)) from df")
+```

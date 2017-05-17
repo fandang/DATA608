@@ -1,0 +1,195 @@
+---
+title: "608 Final Project Data Prep"
+author: "Dan Fanelli"
+date: "March 26, 2017"
+output: html_document
+---
+
+
+```{r message=FALSE, warning=FALSE}
+library(knitr)
+library(sqldf)
+library(reshape2)
+library(corrplot)
+library(ggplot2)
+# install_github("dgrtwo/gganimate")
+library(gganimate)
+
+DO_JOINS = FALSE
+
+loadIt <- function(countryNamePosition, data_path){
+  the_data <- read.csv(data_path, header = TRUE);
+  colnames(the_data)[countryNamePosition] <- "COUNTRY";
+  colnames(the_data) <- sub("\\.", "_", colnames(the_data))
+  #the_data <- the_data[the_data$COUNTRY == "United States",]
+  if("Country_Code" %in% colnames(the_data))
+  {
+    the_data$Country_Code <- NULL
+  }
+  if("Indicator_Name" %in% colnames(the_data))
+  {
+    the_data$Indicator_Name <- NULL
+  }
+  if("Indicator_Code" %in% colnames(the_data))
+  {
+    the_data$Indicator_Code <- NULL
+  }
+  if("X" %in% colnames(the_data))
+  {
+    the_data$X <- NULL
+  }
+  	
+  return (the_data);
+}
+
+if(DO_JOINS){
+health_expenditure_per_capita <- loadIt(1,"data/health_expenditure_per_capita/sh.xpd.pcap_Indicator_en_csv_v2.1.csv")
+  life_expectancy_at_birth <- loadIt(1,"data/life_expectancy_at_birth/sp.dyn.le00.in_Indicator_en_csv_v2.csv")
+  central_gov_debt_pct_of_gdp <- loadIt(1,"data/central_gov_debt_pct_of_gdp/API_GC.DOD.TOTL.GD.ZS_DS2_en_csv_v2.csv")
+  gdp_per_capita <- loadIt(1,"data/gdp_per_capita/API_NY.GDP.PCAP.CD_DS2_en_csv_v2.csv")
+  imports_of_goods_and_services_pct_of_gdp <- loadIt(1,"data/imports_of_goods_and_services_pct_of_gdp/UNdata_Export_20170404_174621003.csv")
+  gov_education_spending_per_student <- loadIt(1,"data/gov_education_spending_per_student/API_SE.XPD.PRIM.PC.ZS_DS2_en_csv_v2.csv")
+  
+  
+  health_expenditure_per_capita <- melt(health_expenditure_per_capita, id.vars=c("COUNTRY"))
+  colnames(health_expenditure_per_capita)[2] <- "YEAR"
+  colnames(health_expenditure_per_capita)[3] <- "HEALTH_EXPENDITURE_PER_CAPITA"
+  health_expenditure_per_capita$YEAR <- sub('.', '', health_expenditure_per_capita$YEAR)
+  kable(health_expenditure_per_capita)
+  
+  
+  life_expectancy_at_birth <- melt(life_expectancy_at_birth, id.vars=c("COUNTRY"))
+  colnames(life_expectancy_at_birth)[2] <- "YEAR"
+  colnames(life_expectancy_at_birth)[3] <- "LIFE_EXPECTANCY_AT_BIRTH"
+  life_expectancy_at_birth$YEAR <- sub('.', '', life_expectancy_at_birth$YEAR)
+  kable(life_expectancy_at_birth)
+  
+  
+  
+  central_gov_debt_pct_of_gdp <- melt(central_gov_debt_pct_of_gdp, id.vars=c("COUNTRY"))
+  colnames(central_gov_debt_pct_of_gdp)[2] <- "YEAR"
+  colnames(central_gov_debt_pct_of_gdp)[3] <- "GOV_DEBT_PCT_OF_GDP"
+  central_gov_debt_pct_of_gdp$YEAR <- sub('.', '', central_gov_debt_pct_of_gdp$YEAR)
+  kable(central_gov_debt_pct_of_gdp)
+  
+  
+  
+  gdp_per_capita <- melt(gdp_per_capita, id.vars=c("COUNTRY"))
+  colnames(gdp_per_capita)[2] <- "YEAR"
+  colnames(gdp_per_capita)[3] <- "GDP_PER_CAPITA"
+  gdp_per_capita$YEAR <- sub('.', '', gdp_per_capita$YEAR)
+  kable(gdp_per_capita)
+  
+  imports_of_goods_and_services_pct_of_gdp$Value_Footnotes <- NULL
+  imports_of_goods_and_services_pct_of_gdp$X <- NULL
+  colnames(imports_of_goods_and_services_pct_of_gdp)[3] <- "IMPORTS_PCT_OF_GDP"
+  kable(imports_of_goods_and_services_pct_of_gdp)
+  
+  gov_education_spending_per_student <- melt(gov_education_spending_per_student, id.vars=c("COUNTRY"))
+  colnames(gov_education_spending_per_student)[2] <- "YEAR"
+  colnames(gov_education_spending_per_student)[3] <- "GOV_ED_SPEND_PCT_GDP"
+  gov_education_spending_per_student$Indicator_Name <- NULL
+  gov_education_spending_per_student$Indicator_Code <- NULL
+  gov_education_spending_per_student$YEAR <- sub('.', '', gov_education_spending_per_student$YEAR)
+  kable(gov_education_spending_per_student)
+  
+  data <- sqldf("select he.COUNTRY, he.YEAR, he.HEALTH_EXPENDITURE_PER_CAPITA, le.LIFE_EXPECTANCY_AT_BIRTH, cgd.GOV_DEBT_PCT_OF_GDP, gdp.GDP_PER_CAPITA, imp.IMPORTS_PCT_OF_GDP, ed.GOV_ED_SPEND_PCT_GDP from health_expenditure_per_capita he, life_expectancy_at_birth le, central_gov_debt_pct_of_gdp cgd, gdp_per_capita gdp, imports_of_goods_and_services_pct_of_gdp imp, gov_education_spending_per_student ed where he.COUNTRY = le.COUNTRY and he.YEAR = le.YEAR and le.COUNTRY = cgd.COUNTRY and le.YEAR = cgd.YEAR and cgd.COUNTRY = gdp.COUNTRY and cgd.YEAR = gdp.YEAR and gdp.COUNTRY = imp.COUNTRY and gdp.YEAR = imp.YEAR and imp.COUNTRY = ed.COUNTRY and imp.YEAR = ed.YEAR")
+  kable(data)
+  
+  write.csv(data, file = "data.csv")
+}
+
+```
+
+# Join Em
+
+```{r message=FALSE, warning=FALSE}
+data <- read.csv("data.csv", header = TRUE);
+if("X" %in% colnames(data))
+{
+  data$X <- NULL
+}
+
+kable(head(data, n=10))
+
+
+colnames(data)
+
+lm_health_expenditure_per_capita <- lm(HEALTH_EXPENDITURE_PER_CAPITA ~ . -COUNTRY - YEAR, data = data)
+summary(lm_health_expenditure_per_capita)
+
+lm_GOV_DEBT_PCT_OF_GDP <- lm(GOV_DEBT_PCT_OF_GDP ~ . -COUNTRY - YEAR, data = data)
+summary(lm_GOV_DEBT_PCT_OF_GDP)
+
+lm_GDP_PER_CAPITA <- lm(GDP_PER_CAPITA ~ . -COUNTRY - YEAR, data = data)
+summary(lm_GDP_PER_CAPITA)
+
+lm_IMPORTS_PCT_OF_GDP <- lm(IMPORTS_PCT_OF_GDP ~ . -COUNTRY - YEAR, data = data)
+summary(lm_IMPORTS_PCT_OF_GDP)
+
+lm_GOV_ED_SPEND_PCT_GDP <- lm(GOV_ED_SPEND_PCT_GDP ~ . -COUNTRY - YEAR, data = data)
+summary(lm_GOV_ED_SPEND_PCT_GDP)
+
+lm_LIFE_EXPECTANCY_AT_BIRTH <- lm(LIFE_EXPECTANCY_AT_BIRTH ~ . -COUNTRY - YEAR, data = data)
+summary(lm_LIFE_EXPECTANCY_AT_BIRTH)
+
+sapply(data, class)
+
+M <- cor(data[ , !names(data) %in% c("COUNTRY","YEAR")])
+corrplot(M, method="circle")
+
+
+summary(lm(LIFE_EXPECTANCY_AT_BIRTH ~ GDP_PER_CAPITA + GOV_ED_SPEND_PCT_GDP + HEALTH_EXPENDITURE_PER_CAPITA, data = data))
+
+
+sample_countries <- c("United States", "Spain", "Italy", "Honduras", "Iran")
+
+plot1 <- ggplot(data[data$COUNTRY %in% sample_countries,], aes(x = YEAR, y = GDP_PER_CAPITA, colour=factor(COUNTRY))) + xlab("Year") + ylab("GDP_PER_CAPITA") + ggtitle("GDP_PER_CAPITA") + scale_colour_discrete(name = "Country") + geom_line()
+
+plot1
+
+
+plot_for <- function (x_field, x_max, start_year, end_year){
+  for(yr in c(start_year:end_year)){
+    plt <- ggplot(data[data$YEAR == yr,], aes_string(x = x_field, y = 'LIFE_EXPECTANCY_AT_BIRTH', colour='factor(COUNTRY)')) + xlab(x_field) + ylab("LIFE_EXPECTANCY_AT_BIRTH") + ggtitle(yr) + scale_colour_discrete(name = "Country") + geom_point() + theme(legend.position="none") + xlim(0, x_max)
+    print(plt);
+  }
+}
+
+
+
+```
+
+# GDP_PER_CAPITA
+
+```{r message=FALSE, warning=FALSE}
+plot_for('GDP_PER_CAPITA', 100000, 1961, 2011)
+```
+
+# GOV_ED_SPEND_PCT_GDP
+
+```{r message=FALSE, warning=FALSE}
+plot_for('GOV_ED_SPEND_PCT_GDP', 55, 1998, 2011)
+```
+
+# HEALTH_EXPENDITURE_PER_CAPITA
+
+```{r message=FALSE, warning=FALSE}
+plot_for('HEALTH_EXPENDITURE_PER_CAPITA', 10000, 1995, 2011)
+```
+
+# GOV_DEBT_PCT_OF_GDP
+
+```{r message=FALSE, warning=FALSE}
+plot_for('GOV_DEBT_PCT_OF_GDP', 100, 1989, 2011)
+```
+
+# CREATE CSV FOR D3
+
+```{r message=FALSE, warning=FALSE}
+df_2k5 = sqldf("select YEAR, COUNTRY, LIFE_EXPECTANCY_AT_BIRTH, GOV_DEBT_PCT_OF_GDP from data where YEAR == 2005 and GOV_DEBT_PCT_OF_GDP is not null")
+
+kable(df_2k5)
+
+write.csv(df_2k5, file = "debt_gdp_2005.csv")
+```

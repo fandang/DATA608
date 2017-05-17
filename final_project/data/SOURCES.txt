@@ -1,0 +1,7 @@
+15 years of personal income tax rates by country:
+http://stats.oecd.org/index.aspx?DataSetCode=TABLE_I1
+TABLE_I1_26032017123527211.csv
+
+http://data.worldbank.org/indicator
+- Government Expenditure per Student: http://data.worldbank.org/indicator/SE.XPD.PRIM.PC.ZS?view=chart
+- Central government debt, total (% of GDP): http://data.worldbank.org/indicator/GC.DOD.TOTL.GD.ZS

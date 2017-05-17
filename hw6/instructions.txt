@@ -1,0 +1,3 @@
+- npm install http-server -g
+- from this directory: http-server .
+- go to http://localhost:8080/

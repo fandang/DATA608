@@ -1,0 +1,31 @@
+---
+title: "Dev HW3A"
+author: "Dan Fanelli"
+date: "March 9, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r message=FALSE, warning=FALSE}
+
+library(knitr)
+library(sqldf)
+library(ggplot2)
+
+data <- read.csv("cleaned-cdc-mortality-1999-2010-2.csv", header = TRUE)
+
+names(data) <- gsub(x = names(data), pattern = "\\.", replacement = "_")
+data_nvs <- sqldf("select * from data where ICD_Chapter = 'Diseases of the nervous system' and Year = 2010")
+
+kable(data_nvs)
+
+nrow(data_nvs)
+
+kable(sqldf("select ICD_Chapter, count(*) from data where Year = 2010 group by ICD_Chapter"))
+    
+
+kable(sqldf("select ICD_Chapter, count(*) as the_count from data where Year = 2010 and State != 'DC' group by ICD_Chapter"))
+
+```
+
